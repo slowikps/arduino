@@ -12,6 +12,8 @@ String BACKWARD2 = String("b");
 
 boolean forward = true;
 int speed = 130;
+
+boolean useSerial = true;
 void setup() {
   pinMode(PWM1, OUTPUT);
   pinMode(PWM2, OUTPUT);
@@ -28,8 +30,18 @@ void setup() {
   }
   Serial.println("Ready to go");
 }
-
 void loop() {
+  if(useSerial) {
+    processSerial();  
+  } else {
+    processWeb();
+  }
+}
+void processWeb() {
+  
+}
+
+void processSerial() {
   while (Serial.available() > 0) {
     int input = Serial.parseInt();
     if (input == 6) {
@@ -51,21 +63,27 @@ void loop() {
 }
 
 void startMotor(boolean dir, int speed) {
-  if (dir) {
+  updateMotorData(dir, speed, dir, speed);
+}
+
+void updateMotorData(boolean direction_l, int speed_l, boolean direction_r, int speed_r) {
+  if (direction_l) {
     digitalWrite(L1, LOW);
     digitalWrite(L2, HIGH);
-    digitalWrite(R1, LOW);
-    digitalWrite(R2, HIGH);
   } else {
     digitalWrite(L2, LOW);
     digitalWrite(L1, HIGH);
+  }
+  if (direction_r) {
+    digitalWrite(R1, LOW);
+    digitalWrite(R2, HIGH);
+  } else {
     digitalWrite(R2, LOW);
     digitalWrite(R1, HIGH);
   }
-  analogWrite(PWM1, speed);
-  analogWrite(PWM2, speed);
+  analogWrite(PWM1, speed_l);
+  analogWrite(PWM2, speed_r);
 }
-
 
 void stopMotor() {
   digitalWrite(6, LOW);
