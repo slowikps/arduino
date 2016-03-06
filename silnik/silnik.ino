@@ -1,8 +1,14 @@
 #include <Bridge.h>
 #include <YunServer.h>
 #include <YunClient.h>
+#include <IRremote.h>
 
 YunServer server; //"The use of YunServer is deprecated. Use BridgeServer instead!"
+int RECV_PIN = 8; //IR - remote control
+IRrecv irrecv(RECV_PIN);
+
+decode_results results;
+
 int MINIMUM_DISTANCE_TO_OPSTICLE = 20;
 int PWM1 = 5;
 int PWM2 = 9;
@@ -59,6 +65,7 @@ void setup() {
   server.listenOnLocalhost();
   server.begin();
 
+  irrecv.enableIRIn(); // Start the receiver
   //  Serial.begin(9600);
   //  while (!Serial) {
   //    ; // wait for serial port to connect. Needed for native USB port only
@@ -70,6 +77,7 @@ void loop() {
     //    processSerial();
   } else {
     processWeb();
+    processIRRemote();
   }
 }
 void processWeb() {
@@ -88,6 +96,40 @@ void processWeb() {
   delay(50);
 }
 
+void processIRRemote() {
+  if (irrecv.decode(&results)) {
+//    Serial.print("Recieved signal: ");
+//    Serial.println(results.value);
+
+    if (results.value == 16754775) {//Plus
+      car.speed_l += 50;
+      car.speed_r += 50;
+    } else if (results.value == 16769055) {//Minus
+      car.speed_l -= 50;
+      car.speed_r -= 50;
+    } else if (results.value == 16761405) {//Play/Stop
+      if (car.speed_l > 0 || car.speed_r > 0) {
+        car.speed_l = 0;
+        car.speed_r = 0;
+      } else {
+        car.speed_l = 240;
+        car.speed_r = 240;
+      }
+    } else if (results.value == 16724175) {//1
+      car.speed_l -= 50;
+    } else if (results.value == 16718055) {//2
+      car.speed_l += 50;
+    } else if (results.value == 16716015) {//4
+      car.speed_r -= 50;
+    } else if (results.value == 16726215) {//5
+      car.speed_r += 50;
+    }
+
+
+    irrecv.resume(); // Receive the next value
+  }
+  delay(100);
+}
 //void processSerial() {
 //  while (Serial.available() > 0) {
 //    int input = Serial.parseInt();
@@ -145,13 +187,11 @@ void checkDistance() {
   back = calculateDistance(back);
 
   if (front.distance < MINIMUM_DISTANCE_TO_OPSTICLE ) {
-    Serial.println("go to front");
     car.direction_l = false;
     car.direction_r = false;
     updateMotorData();
   }
   if (back.distance < MINIMUM_DISTANCE_TO_OPSTICLE ) {
-    Serial.println("go to back");
     car.direction_l = true;
     car.direction_r = true;
     updateMotorData();
